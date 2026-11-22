@@ -78,5 +78,24 @@ cd backend && python -m venv .venv && .venv\Scripts\pip install -r requirements.
 .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000     # API docs at /api/docs
 cd frontend && npm install && npm run dev                                # http://localhost:5173 (proxies /api)
 ```
-`backend/smoke_test.py` is an end-to-end API test. Run it only against an **empty** test install: it creates an admin with a test
-password, sample data, bills, purchases, notes and a backup/restore.
+### Automated tests
+`backend/tests` holds a pytest suite: GST engine unit tests plus API tests for login and permissions, billing, purchases, stock,
+daily / monthly / financial-year locks, backup & restore and every report export. Each test starts from a brand-new empty
+database in a temporary folder, so it never touches the live install.
+```
+cd backend && .venv\Scripts\pip install -r requirements-dev.txt
+.venv\Scripts\python -m pytest                                          # uses a temporary SQLite database
+```
+To test against PostgreSQL, start a throwaway container and point `TEST_DATABASE_URL` at it (the database name must contain
+`test`; the container keeps nothing on disk and is removed when stopped):
+```
+docker run --rm -d --name madhurima-test-db -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=madhurima_test -p 127.0.0.1:55432:5432 --tmpfs /var/lib/postgresql/data postgres:17-alpine
+set TEST_DATABASE_URL=postgresql+psycopg://test:test@127.0.0.1:55432/madhurima_test
+.venv\Scripts\python -m pytest
+docker stop madhurima-test-db
+```
+GitHub Actions (`.github/workflows/ci.yml`) runs the suite on SQLite and PostgreSQL, builds the React UI and builds the Docker
+image on every push to `main` and every pull request.
+
+`backend/smoke_test.py` is an end-to-end API test against a running server. Run it only against an **empty** test install: it
+creates an admin with a test password, sample data, bills, purchases, notes and a backup/restore.
