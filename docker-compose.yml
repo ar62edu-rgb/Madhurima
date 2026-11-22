@@ -1,0 +1,43 @@
+# Madhurima Family Restaurant — runs entirely on this PC.
+#   docker compose up -d --build      -> http://localhost:8090  (or http://<this-PC-IP>:8090 from other devices on the LAN)
+name: madhurima
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: madhurima-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: madhurima
+      POSTGRES_USER: madhurima
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (run install.bat)}
+      TZ: Asia/Kolkata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U madhurima -d madhurima"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    image: madhurima-restaurant:latest
+    container_name: madhurima-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://madhurima:${POSTGRES_PASSWORD}@db:5432/madhurima
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (run install.bat)}
+      TZ: Asia/Kolkata
+    ports:
+      - "${APP_PORT:-8090}:8000"
+    volumes:
+      - appdata:/data
+      - ./backups:/data/backups
+
+volumes:
+  pgdata:
+  appdata:
