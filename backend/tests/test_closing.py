@@ -63,6 +63,13 @@ def test_closing_rules(admin):
                expect=400)
 
 
+def test_closing_history_defaults_to_last_month(admin):
+    """Regression: without dates the list used to cover only the single day 31 days ago (the UI showed nothing)."""
+    admin.post("/api/daily-closing", {"closing_date": YESTERDAY.isoformat(), "opening_cash": 0, "actual_cash": 0})
+    admin.post("/api/daily-closing", {"closing_date": TODAY.isoformat(), "opening_cash": 0, "actual_cash": 0})
+    assert [c["closing_date"] for c in admin.get("/api/daily-closings")] == [TODAY.isoformat(), YESTERDAY.isoformat()]
+
+
 def test_closing_cash_is_carried_forward(admin):
     admin.post("/api/daily-closing", {"closing_date": YESTERDAY.isoformat(), "opening_cash": 0, "actual_cash": 750})
     day = admin.get("/api/daily-closing")

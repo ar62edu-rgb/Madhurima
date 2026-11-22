@@ -242,7 +242,8 @@ def get_daily(day: str | None = None, _: User = Depends(current_user), db: Sessi
 @router.get("/daily-closings")
 def list_daily(from_date: str | None = None, to_date: str | None = None, _: User = Depends(current_user),
                db: Session = Depends(get_db)):
-    f, t = parse_range(from_date or (date.today() - timedelta(days=31)).isoformat(), to_date)
+    f, t = parse_range(from_date or (date.today() - timedelta(days=31)).isoformat(),
+                       to_date or date.today().isoformat())
     stmt = select(DailyClosing).where(DailyClosing.closing_date >= f, DailyClosing.closing_date <= t) \
         .order_by(DailyClosing.closing_date.desc())
     return [to_dict(c) for c in db.scalars(stmt)]

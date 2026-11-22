@@ -97,5 +97,24 @@ docker stop madhurima-test-db
 GitHub Actions (`.github/workflows/ci.yml`) runs the suite on SQLite and PostgreSQL, builds the React UI and builds the Docker
 image on every push to `main` and every pull request.
 
+### Demo data (for manual testing only)
+`backend/demo_data.py` fills an **empty** install with about a month of realistic data through the app's own code: sample menu,
+raw materials and a recipe, suppliers (one inter-state), customers (two B2B GSTINs), ~400 bills (cash / UPI / split, dine-in,
+takeaway, delivery), cancellations, credit and debit notes, purchases with part payments, expenses, stock wastage, closed days
+(the last three left open) and a closed month. It refuses to run once real bills, purchases or parties exist.
+```
+docker compose exec -T app python - --yes --admin <your-admin-username> < backend/demo_data.py > demo-admin.txt
+```
+Without `--admin` (on a database with no users) it creates user `admin` as well. Generated passwords (and the `cashier1` user's)
+are written only to `demo-admin.txt`, which git ignores.
+
+**Wipe the demo data before real use** (this deletes *everything*, including users):
+```
+docker compose down -v          # removes the madhurima_pgdata and madhurima_appdata volumes
+del /q backups\*.zip            # these backups contain demo data and would bring it back if restored
+del demo-admin.txt
+install.bat                     # or: docker compose up -d --build, then do the first-time setup again
+```
+
 `backend/smoke_test.py` is an end-to-end API test against a running server. Run it only against an **empty** test install: it
 creates an admin with a test password, sample data, bills, purchases, notes and a backup/restore.
